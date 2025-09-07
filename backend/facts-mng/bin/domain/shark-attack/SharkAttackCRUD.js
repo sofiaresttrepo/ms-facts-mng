@@ -91,17 +91,34 @@ class SharkAttackCRUD {
    */
   getMoreSharkAttacksByCountry$({ args }, authToken) {
     const { country } = args;
+    const https = require('https');
+    const apiUrl = `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/global-shark-attack/records?where=country%3D%27${encodeURIComponent(country)}%27&limit=5`;
     
-    // Mock data for testing - replace with real API call later
-    const mockCases = [
-      { country: country, date: '2023-01-15', activity: 'Swimming', location: 'Beach Area' },
-      { country: country, date: '2023-02-20', activity: 'Surfing', location: 'Surf Spot' },
-      { country: country, date: '2023-03-10', activity: 'Diving', location: 'Reef Area' },
-      { country: country, date: '2023-04-05', activity: 'Fishing', location: 'Coastal Waters' },
-      { country: country, date: '2023-05-12', activity: 'Snorkeling', location: 'Lagoon' }
-    ];
-    
-    return of(mockCases).pipe(
+    return from(new Promise((resolve, reject) => {
+      const req = https.get(apiUrl, (res) => {
+        let data = '';
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => {
+          try {
+            const response = JSON.parse(data);
+            const cases = (response.results || []).map(record => ({
+              country: record.country || '',
+              date: record.date || '',
+              activity: record.activity || '',
+              location: record.location || ''
+            }));
+            resolve(cases);
+          } catch (error) {
+            reject(error);
+          }
+        });
+      });
+      req.on('error', reject);
+      req.setTimeout(5000, () => {
+        req.destroy();
+        reject(new Error('Request timeout'));
+      });
+    })).pipe(
       mergeMap(rawResponse => CqrsResponseHelper.buildSuccessResponse$(rawResponse)),
       catchError(err => CqrsResponseHelper.handleError$(err))
     );
