@@ -220,7 +220,10 @@ function SharkAttack(props) {
             && !updateSharkAttackResult.loading
             && !createSharkAttackResult.loading
             && _.isEmpty(errors)
-            && !_.isEqual({ ...sharkAttack, metadata: undefined }, { ...form, metadata: undefined })
+            && form && (
+                form.id === undefined || // New record - always allow save
+                !_.isEqual({ ...sharkAttack, metadata: undefined }, { ...form, metadata: undefined })
+            )
         );
     }
 

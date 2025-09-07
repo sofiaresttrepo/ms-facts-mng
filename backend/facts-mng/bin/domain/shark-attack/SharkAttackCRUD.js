@@ -44,8 +44,8 @@ class SharkAttackCRUD {
         "emigateway.graphql.query.FactsMngSharkAttack": { fn: instance.getSharkAttack$, instance, jwtValidation: { roles: READ_ROLES, attributes: REQUIRED_ATTRIBUTES } },
         "emigateway.graphql.query.moreSharkAttacksByCountry": { fn: instance.getMoreSharkAttacksByCountry$, instance, jwtValidation: { roles: READ_ROLES, attributes: REQUIRED_ATTRIBUTES } },
         "emigateway.graphql.mutation.FactsMngCreateSharkAttack": { fn: instance.createSharkAttack$, instance, jwtValidation: { roles: WRITE_ROLES, attributes: REQUIRED_ATTRIBUTES } },
-        "emigateway.graphql.mutation.FactsMngUpdateSharkAttack": { fn: instance.updateSharkAttack$, jwtValidation: { roles: WRITE_ROLES, attributes: REQUIRED_ATTRIBUTES } },
-        "emigateway.graphql.mutation.FactsMngDeleteSharkAttacks": { fn: instance.deleteSharkAttacks$, jwtValidation: { roles: WRITE_ROLES, attributes: REQUIRED_ATTRIBUTES } },
+        "emigateway.graphql.mutation.FactsMngUpdateSharkAttack": { fn: instance.updateSharkAttack$, instance, jwtValidation: { roles: WRITE_ROLES, attributes: REQUIRED_ATTRIBUTES } },
+        "emigateway.graphql.mutation.FactsMngDeleteSharkAttacks": { fn: instance.deleteSharkAttacks$, instance, jwtValidation: { roles: WRITE_ROLES, attributes: REQUIRED_ATTRIBUTES } },
         "emigateway.graphql.mutation.importSharkAttacks": { fn: instance.importSharkAttacks$, instance, jwtValidation: { roles: WRITE_ROLES, attributes: REQUIRED_ATTRIBUTES } },
       }
     }
@@ -248,8 +248,7 @@ class SharkAttackCRUD {
           return SharkAttackDA.upsertSharkAttack$(aggregateId, sharkAttackData, authToken.preferred_username).pipe(
             mergeMap(aggregate => forkJoin(
               of(aggregate),
-              eventSourcing.emitEvent$(instance.buildAggregateMofifiedEvent('IMPORT', 'SharkAttack', aggregateId, authToken, aggregate), { autoAcknowledgeKey: process.env.MICROBACKEND_KEY }),
-              broker.send$(MATERIALIZED_VIEW_TOPIC, `FactsMngSharkAttackModified`, aggregate)
+              eventSourcing.emitEvent$(instance.buildSharkAttackReportedEvent(aggregateId, authToken, aggregate), { autoAcknowledgeKey: process.env.MICROBACKEND_KEY })
             )),
             map(([aggregate]) => aggregate),
             catchError(err => {
@@ -291,6 +290,20 @@ class SharkAttackCRUD {
         modType,
         ...data
       },
+      user: authToken.preferred_username
+    })
+  }
+
+  /**
+   * Generate a SharkAttackReported event for imported records
+   */
+  buildSharkAttackReportedEvent(aggregateId, authToken, data) {
+    return new Event({
+      eventType: "SharkAttackReported",
+      eventTypeVersion: 1,
+      aggregateType: "SharkAttack",
+      aggregateId,
+      data,
       user: authToken.preferred_username
     })
   }
