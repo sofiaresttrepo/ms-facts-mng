@@ -49,6 +49,15 @@ class SharkAttackDA {
     if (filter.organizationId) {
       query["organizationId"] = filter.organizationId;
     }
+    if (filter.country) {
+      query["country"] = { $regex: filter.country, $options: "i" };
+    }
+    if (filter.year) {
+      query["year"] = filter.year;
+    }
+    if (filter.type) {
+      query["type"] = { $regex: filter.type, $options: "i" };
+    }
     if (filter.active !== undefined) {
       query["active"] = filter.active;
     }
@@ -60,7 +69,13 @@ class SharkAttackDA {
     const { page = 0, count = 10 } = pagination;
 
     const query = this.generateListingQuery(filter);    
-    const projection = { name: 1, active: 1 };
+    const projection = { 
+      date: 1, 
+      country: 1, 
+      type: 1, 
+      species: 1, 
+      active: 1 
+    };
 
     let cursor = collection
       .find(query, { projection })

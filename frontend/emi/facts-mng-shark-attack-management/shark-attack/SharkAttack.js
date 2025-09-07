@@ -37,9 +37,27 @@ import { BasicInfo, basicInfoFormValidationsGenerator } from './tabs/BasicInfo';
  * Default Aggregate data when creating 
  */
 const defaultData = {
-    name: '',
-    description: '',
     active: true,
+    date: '',
+    year: null,
+    type: '',
+    country: '',
+    area: '',
+    location: '',
+    activity: '',
+    name: '',
+    sex: '',
+    age: '',
+    injury: '',
+    fatal_y_n: '',
+    time: '',
+    species: '',
+    investigator_or_source: '',
+    pdf: '',
+    href_formula: '',
+    href: '',
+    case_number: '',
+    case_number0: ''
 };
 
 function SharkAttack(props) {
@@ -185,10 +203,14 @@ function SharkAttack(props) {
      */
     function handleSave() {
         const { id } = form;
+        const processedForm = {
+            ...form,
+            year: form.year ? parseInt(form.year) : null
+        };
         if (id === undefined) {
-            createSharkAttack({ variables: { input: { ...form, organizationId: loggedUser.selectedOrganization.id } } });
+            createSharkAttack({ variables: { input: { ...processedForm, organizationId: loggedUser.selectedOrganization.id } } });
         } else {
-            updateSharkAttack({ variables: { id, input: { ...form, id: undefined, __typename: undefined, metadata: undefined }, merge: true } });
+            updateSharkAttack({ variables: { id, input: { ...processedForm, id: undefined, __typename: undefined, metadata: undefined }, merge: true } });
         }
     }
 
@@ -248,7 +270,7 @@ function SharkAttack(props) {
                                 <div className="flex flex-col min-w-0">
                                     <FuseAnimate animation="transition.slideLeftIn" delay={300}>
                                         <Typography className="text-16 sm:text-20 truncate">
-                                            {form.name ? form.name : 'New SharkAttack'}
+                                            {form.name || form.country || T.translate("shark_attacks.add_new_shark_attack")}
                                         </Typography>
                                     </FuseAnimate>
                                     <FuseAnimate animation="transition.slideLeftIn" delay={300}>

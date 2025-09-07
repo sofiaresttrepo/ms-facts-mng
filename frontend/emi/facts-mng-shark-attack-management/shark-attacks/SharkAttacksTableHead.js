@@ -28,17 +28,31 @@ function SharkAttacksTableHead(props) {
 
     const rows = [
         {
-            id: 'name',
+            id: 'date',
             align: 'left',
             disablePadding: false,
-            label: T.translate("shark_attacks.table_colums.name"),
+            label: T.translate("shark_attacks.table_colums.date"),
             sort: true
         },
         {
-            id: 'active',
-            align: 'right',
+            id: 'country',
+            align: 'left',
             disablePadding: false,
-            label: T.translate("shark_attacks.table_colums.active"),
+            label: T.translate("shark_attacks.table_colums.country"),
+            sort: true
+        },
+        {
+            id: 'type',
+            align: 'left',
+            disablePadding: false,
+            label: T.translate("shark_attacks.table_colums.type"),
+            sort: true
+        },
+        {
+            id: 'species',
+            align: 'left',
+            disablePadding: false,
+            label: T.translate("shark_attacks.table_colums.species"),
             sort: true
         }
     ];
