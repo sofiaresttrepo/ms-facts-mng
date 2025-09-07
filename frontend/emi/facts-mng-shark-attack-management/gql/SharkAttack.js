@@ -78,6 +78,16 @@ export const moreSharkAttacksByCountry = (variables) => ({
     fetchPolicy: 'network-only',
 })
 
+export const importSharkAttacks = () => ({
+    mutation: gql`
+            mutation importSharkAttacks{
+                importSharkAttacks{
+                    code, message
+                }
+            }`,
+    variables: {}
+})
+
 export const onFactsMngSharkAttackModified = (variables) => ([
     gql`subscription onFactsMngSharkAttackModified($id:ID!){
             FactsMngSharkAttackModified(id:$id){    

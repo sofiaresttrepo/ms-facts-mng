@@ -78,7 +78,12 @@ module.exports = {
             return sendToBackEndHandler$(root, args, context, READ_ROLES, 'query', 'SharkAttack', 'FactsMngSharkAttack').toPromise();
         },
         moreSharkAttacksByCountry(root, args, context) {
-            return sendToBackEndHandler$(root, args, context, READ_ROLES, 'query', 'SharkAttack', 'moreSharkAttacksByCountry').toPromise();
+            // Transform country to uppercase to ensure API compatibility
+            const modifiedArgs = {
+                ...args,
+                country: args.country.toUpperCase()
+            };
+            return sendToBackEndHandler$(root, modifiedArgs, context, READ_ROLES, 'query', 'SharkAttack', 'moreSharkAttacksByCountry').toPromise();
         }
     },
 
@@ -93,6 +98,9 @@ module.exports = {
         FactsMngDeleteSharkAttacks(root, args, context) {
             return sendToBackEndHandler$(root, args, context, WRITE_ROLES, 'mutation', 'SharkAttack', 'FactsMngDeleteSharkAttacks').toPromise();
         },
+        importSharkAttacks(root, args, context) {
+            return sendToBackEndHandler$(root, args, context, WRITE_ROLES, 'mutation', 'SharkAttack', 'importSharkAttacks', 60000).toPromise();
+        }
     },
 
     //// SUBSCRIPTIONS ///////

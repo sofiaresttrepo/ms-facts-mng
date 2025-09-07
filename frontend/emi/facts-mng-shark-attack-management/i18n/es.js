@@ -8,6 +8,9 @@ export default {
     search: 'Búsqueda rápida por nombre',
     add_new_shark_attack: 'Agregar Nueva',
     add_new_shark_attack_short: 'Agregar',
+    import_data: 'IMPORTAR',
+    import_success: 'Datos importados exitosamente',
+    import_error: 'Error al importar datos',
     rows_per_page: 'Filas por página:',
     of: 'de',
     remove: 'Eliminar',
@@ -26,6 +29,12 @@ export default {
     filters: {
       title: "Filtros",
       active: "Activo"
+    },
+    import_dialog: {
+      title: "Importar Datos",
+      message: "¿Desea importar 100 registros de ataques de tiburones desde la API externa?",
+      cancel: "Cancelar",
+      confirm: "Importar"
     }
   },
   shark_attack: {

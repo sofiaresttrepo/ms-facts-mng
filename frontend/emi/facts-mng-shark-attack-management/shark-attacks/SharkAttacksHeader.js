@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Paper, Button, Input, Icon, Typography, Hidden, IconButton } from '@material-ui/core';
+import { Paper, Button, Input, Icon, Typography, Hidden, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, CircularProgress } from '@material-ui/core';
 import { ThemeProvider } from '@material-ui/styles';
 import { FuseAnimate } from '@fuse';
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,7 +16,10 @@ function SharkAttacksHeader(props) {
     const user = useSelector(({ auth }) => auth.user);
     const mainTheme = useSelector(({ fuse }) => fuse.settings.mainTheme);
     const searchTextFilter = useSelector(({ SharkAttackManagement }) => SharkAttackManagement.sharkAttacks.filters.name);
+    const sharkAttacksState = useSelector(({ SharkAttackManagement }) => SharkAttackManagement.sharkAttacks);
     const [searchText, setSearchText] = useState(searchTextFilter)
+    const [importDialogOpen, setImportDialogOpen] = useState(false)
+    const [importing, setImporting] = useState(false)
     const [keywordCallBack, keyword] = useEventCallback(
         (event$) => event$.pipe(debounceTime(500))
     )
@@ -31,6 +34,28 @@ function SharkAttacksHeader(props) {
         if (keyword !== undefined && keyword !== null)
             dispatch(Actions.setSharkAttacksFilterName(keyword))
     }, [keyword]);
+
+    function handleImportClick() {
+        setImportDialogOpen(true);
+    }
+
+    function handleImportConfirm() {
+        setImporting(true);
+        const { filters, order, page, rowsPerPage } = sharkAttacksState;
+        dispatch(Actions.importSharkAttacksData({ filters, order, page, rowsPerPage }))
+            .then(() => {
+                setImporting(false);
+                setImportDialogOpen(false);
+            })
+            .catch(() => {
+                setImporting(false);
+                setImportDialogOpen(false);
+            });
+    }
+
+    function handleImportCancel() {
+        setImportDialogOpen(false);
+    }
 
     return (
         <div className="flex flex-1 w-full items-center justify-between">
@@ -77,12 +102,43 @@ function SharkAttacksHeader(props) {
                 </ThemeProvider>
 
             </div>
-            <FuseAnimate animation="transition.slideRightIn" delay={300}>
-                <Button component={Link} to="/shark-attack-mng/shark-attacks/new" className="whitespace-no-wrap" variant="contained">
-                    <span className="hidden sm:flex">{T.translate("shark_attacks.add_new_shark_attack")}</span>
-                    <span className="flex sm:hidden">{T.translate("shark_attacks.add_new_shark_attack_short")}</span>
-                </Button>
-            </FuseAnimate>
+            <div className="flex items-center space-x-8">
+                <FuseAnimate animation="transition.slideRightIn" delay={200}>
+                    <Button 
+                        onClick={handleImportClick}
+                        className="whitespace-no-wrap" 
+                        variant="outlined"
+                        color="secondary"
+                    >
+                        <span className="hidden sm:flex">{T.translate("shark_attacks.import_data")}</span>
+                        <span className="flex sm:hidden">IMP</span>
+                    </Button>
+                </FuseAnimate>
+                <FuseAnimate animation="transition.slideRightIn" delay={300}>
+                    <Button component={Link} to="/shark-attack-mng/shark-attacks/new" className="whitespace-no-wrap" variant="contained">
+                        <span className="hidden sm:flex">{T.translate("shark_attacks.add_new_shark_attack")}</span>
+                        <span className="flex sm:hidden">{T.translate("shark_attacks.add_new_shark_attack_short")}</span>
+                    </Button>
+                </FuseAnimate>
+            </div>
+
+            <Dialog open={importDialogOpen} onClose={handleImportCancel}>
+                <DialogTitle>{T.translate("shark_attacks.import_dialog.title")}</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        {T.translate("shark_attacks.import_dialog.message")}
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleImportCancel} color="primary" disabled={importing}>
+                        {T.translate("shark_attacks.import_dialog.cancel")}
+                    </Button>
+                    <Button onClick={handleImportConfirm} color="primary" variant="contained" disabled={importing}>
+                        {importing && <CircularProgress size={20} className="mr-8" />}
+                        {T.translate("shark_attacks.import_dialog.confirm")}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </div>
     );
 }

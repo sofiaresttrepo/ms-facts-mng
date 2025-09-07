@@ -8,6 +8,9 @@ export default {
     search: 'Quick search by name',
     add_new_shark_attack: 'ADD NEW',
     add_new_shark_attack_short: 'NEW',
+    import_data: 'IMPORT',
+    import_success: 'Data imported successfully',
+    import_error: 'Error importing data',
     rows_per_page: 'Rows per page:',
     of: 'of',
     remove: 'Remove',
@@ -26,6 +29,12 @@ export default {
     filters: {
       title: "Filters",
       active: "Active"
+    },
+    import_dialog: {
+      title: "Import Data",
+      message: "Do you want to import 100 shark attack records from the external API?",
+      cancel: "Cancel",
+      confirm: "Import"
     }
   },
   shark_attack: {

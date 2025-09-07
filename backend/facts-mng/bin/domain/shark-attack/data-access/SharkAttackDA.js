@@ -121,6 +121,38 @@ class SharkAttackDA {
   }
 
   /**
+  * creates or updates a SharkAttack (upsert)
+  * @param {*} id SharkAttack ID
+  * @param {*} SharkAttack properties
+  */
+  static upsertSharkAttack$(_id, properties, user) {
+    const collection = mongoDB.db.collection(CollectionName);
+    const now = Date.now();
+    return defer(() => 
+      collection.findOneAndUpdate(
+        { _id },
+        {
+          $set: {
+            ...properties,
+            "metadata.updatedBy": user,
+            "metadata.updatedAt": now
+          },
+          $setOnInsert: {
+            "metadata.createdBy": user,
+            "metadata.createdAt": now
+          }
+        },
+        {
+          upsert: true,
+          returnOriginal: false
+        }
+      )
+    ).pipe(
+      map(result => result && result.value ? { ...result.value, id: result.value._id } : { id: _id, ...properties })
+    );
+  }
+
+  /**
   * modifies the SharkAttack properties
   * @param {String} id  SharkAttack ID
   * @param {*} SharkAttack properties to update

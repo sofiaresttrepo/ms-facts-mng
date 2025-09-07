@@ -2,7 +2,7 @@ import { defer } from 'rxjs';
 import { mergeMap, map } from 'rxjs/operators';
 
 import graphqlService from '../../../../services/graphqlService';
-import { FactsMngSharkAttackListing, FactsMngDeleteSharkAttack } from '../../gql/SharkAttack';
+import { FactsMngSharkAttackListing, FactsMngDeleteSharkAttack, importSharkAttacks } from '../../gql/SharkAttack';
 
 export const SET_SHARK_ATTACKS = '[SHARK_ATTACK_MNG] SET SHARK_ATTACKS';
 export const SET_SHARK_ATTACKS_PAGE = '[SHARK_ATTACK_MNG] SET SHARK_ATTACKS PAGE';
@@ -11,6 +11,7 @@ export const SET_SHARK_ATTACKS_ORDER = '[SHARK_ATTACK_MNG] SET SHARK_ATTACKS ORD
 export const SET_SHARK_ATTACKS_FILTERS_ORGANIZATION_ID = '[SHARK_ATTACK_MNG] SET SHARK_ATTACKS FILTERS ORGANIZATION_ID';
 export const SET_SHARK_ATTACKS_FILTERS_NAME = '[SHARK_ATTACK_MNG] SET SHARK_ATTACKS FILTERS NAME';
 export const SET_SHARK_ATTACKS_FILTERS_ACTIVE = '[SHARK_ATTACK_MNG] SET SHARK_ATTACKS FILTERS ACTIVE';
+export const IMPORT_SHARK_ATTACKS_SUCCESS = '[SHARK_ATTACK_MNG] IMPORT SHARK_ATTACKS SUCCESS';
 
 /**
  * Common function to generate the arguments for the FactsMngSharkAttackListing query based on the user input
@@ -128,6 +129,28 @@ export function setSharkAttacksFilterOrganizationId(organizationId) {
         type: SET_SHARK_ATTACKS_FILTERS_ORGANIZATION_ID,
         organizationId
     }
+}
+
+/**
+ * Import shark attacks from external API and refresh the listing
+ * @param {Object} queryParams Current query parameters for refreshing the list
+ */
+export function importSharkAttacksData({ filters, order, page, rowsPerPage }) {
+    const listingArgs = getListingQueryArguments({ filters, order, page, rowsPerPage });
+    return (dispatch) => defer(() => graphqlService.client.mutate(importSharkAttacks()))
+        .pipe(
+            mergeMap(() => defer(() => graphqlService.client.query(FactsMngSharkAttackListing(listingArgs)))),
+            map((result) => {
+                dispatch({
+                    type: SET_SHARK_ATTACKS,
+                    payload: result.data.FactsMngSharkAttackListing
+                });
+                return dispatch({
+                    type: IMPORT_SHARK_ATTACKS_SUCCESS,
+                    payload: { message: 'Shark attacks imported successfully' }
+                });
+            })
+        ).toPromise();
 }
 
 

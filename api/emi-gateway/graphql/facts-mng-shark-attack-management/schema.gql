@@ -174,7 +174,9 @@ type Mutation {
   "Update an SharkAttack"
   FactsMngUpdateSharkAttack(id: ID!, input: FactsMngSharkAttackInput!, merge: Boolean!): FactsMngSharkAttack  
   "Deletes an SharkAttack"
-  FactsMngDeleteSharkAttacks(ids: [ID]!): CommandResponse  
+  FactsMngDeleteSharkAttacks(ids: [ID]!): CommandResponse
+  "Import 100 shark attacks from external API"
+  importSharkAttacks: CommandResponse
 }
 
 
