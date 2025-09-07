@@ -42,6 +42,7 @@ class SharkAttackCRUD {
       'SharkAttack': {
         "emigateway.graphql.query.FactsMngSharkAttackListing": { fn: instance.getFactsMngSharkAttackListing$, instance, jwtValidation: { roles: READ_ROLES, attributes: REQUIRED_ATTRIBUTES } },
         "emigateway.graphql.query.FactsMngSharkAttack": { fn: instance.getSharkAttack$, instance, jwtValidation: { roles: READ_ROLES, attributes: REQUIRED_ATTRIBUTES } },
+        "emigateway.graphql.query.moreSharkAttacksByCountry": { fn: instance.getMoreSharkAttacksByCountry$, instance, jwtValidation: { roles: READ_ROLES, attributes: REQUIRED_ATTRIBUTES } },
         "emigateway.graphql.mutation.FactsMngCreateSharkAttack": { fn: instance.createSharkAttack$, instance, jwtValidation: { roles: WRITE_ROLES, attributes: REQUIRED_ATTRIBUTES } },
         "emigateway.graphql.mutation.FactsMngUpdateSharkAttack": { fn: instance.updateSharkAttack$, jwtValidation: { roles: WRITE_ROLES, attributes: REQUIRED_ATTRIBUTES } },
         "emigateway.graphql.mutation.FactsMngDeleteSharkAttacks": { fn: instance.deleteSharkAttacks$, jwtValidation: { roles: WRITE_ROLES, attributes: REQUIRED_ATTRIBUTES } },
@@ -81,6 +82,29 @@ class SharkAttackCRUD {
       catchError(err => iif(() => err.name === 'MongoTimeoutError', throwError(err), CqrsResponseHelper.handleError$(err)))
     );
 
+  }
+
+  /**  
+   * Gets more shark attack cases by country from OpenDataSoft API
+   *
+   * @param {*} args args
+   */
+  getMoreSharkAttacksByCountry$({ args }, authToken) {
+    const { country } = args;
+    
+    // Mock data for testing - replace with real API call later
+    const mockCases = [
+      { country: country, date: '2023-01-15', activity: 'Swimming', location: 'Beach Area' },
+      { country: country, date: '2023-02-20', activity: 'Surfing', location: 'Surf Spot' },
+      { country: country, date: '2023-03-10', activity: 'Diving', location: 'Reef Area' },
+      { country: country, date: '2023-04-05', activity: 'Fishing', location: 'Coastal Waters' },
+      { country: country, date: '2023-05-12', activity: 'Snorkeling', location: 'Lagoon' }
+    ];
+    
+    return of(mockCases).pipe(
+      mergeMap(rawResponse => CqrsResponseHelper.buildSuccessResponse$(rawResponse)),
+      catchError(err => CqrsResponseHelper.handleError$(err))
+    );
   }
 
 
