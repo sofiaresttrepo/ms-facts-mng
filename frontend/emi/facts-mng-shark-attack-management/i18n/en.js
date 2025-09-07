@@ -68,6 +68,7 @@ export default {
     internal_server_error: 'Internal Server Error',
     update_success: 'Shark Attack has been updated',
     create_success: 'Shark Attack has been created',
+    more_cases_error: 'Error fetching more cases',
     form_validations: {
       name: {
         length: "Name must be at least {len} characters",

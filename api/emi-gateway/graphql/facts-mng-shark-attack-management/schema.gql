@@ -148,11 +148,24 @@ input FactsMngSharkAttackInput {
 }
 
 
+type SharkAttackCase {
+  "The country where the incident occurred"
+  country: String
+  "The date of the incident"
+  date: String
+  "The activity the victim was engaged in"
+  activity: String
+  "The specific location of the incident"
+  location: String
+}
+
 type Query {
   "Get SharkAttacks filtered "
   FactsMngSharkAttackListing(filterInput: FactsMngSharkAttackFilterInput, paginationInput: FactsMngSharkAttackPaginationInput, sortInput: FactsMngSharkAttackSortInput): FactsMngSharkAttackListing
   "Get SharkAttack by its id"
   FactsMngSharkAttack(id: ID!, organizationId: String!): FactsMngSharkAttack
+  "Get more shark attack cases by country from external API"
+  moreSharkAttacksByCountry(country: String!): [SharkAttackCase]
 }
 
 type Mutation {

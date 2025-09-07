@@ -27,8 +27,10 @@ import {
     onFactsMngSharkAttackModified,
     FactsMngSharkAttack,
     FactsMngCreateSharkAttack,
-    FactsMngUpdateSharkAttack
+    FactsMngUpdateSharkAttack,
+    moreSharkAttacksByCountry
 } from "../gql/SharkAttack";
+import { delay } from 'rxjs/operators';
 import Metadata from './tabs/Metadata';
 import { BasicInfo, basicInfoFormValidationsGenerator } from './tabs/BasicInfo';
 
@@ -74,6 +76,11 @@ function SharkAttack(props) {
     const [createSharkAttack, createSharkAttackResult] = useMutation(FactsMngCreateSharkAttack({}).mutation);
     const [updateSharkAttack, updateSharkAttackResult] = useMutation(FactsMngUpdateSharkAttack({}).mutation);
     const onSharkAttackModifiedResult = useSubscription(...onFactsMngSharkAttackModified({ id: props.match.params.sharkAttackId }));
+    
+    // More cases functionality
+    const [getMoreCases, getMoreCasesResult] = useLazyQuery(moreSharkAttacksByCountry({}).query, { fetchPolicy: 'network-only' });
+    const [moreCases, setMoreCases] = useState([]);
+    const [loadingMoreCases, setLoadingMoreCases] = useState(false);
 
     //UI controls states
     const [tabValue, setTabValue] = useState(0);
@@ -165,6 +172,25 @@ function SharkAttack(props) {
         }
     }, [createSharkAttackResult.error, updateSharkAttackResult.error])
 
+    // Handle more cases response
+    useEffect(() => {
+        if (getMoreCasesResult.data) {
+            setTimeout(() => {
+                setMoreCases(getMoreCasesResult.data.moreSharkAttacksByCountry || []);
+                setLoadingMoreCases(false);
+            }, 1000); // 1 second delay
+        }
+        if (getMoreCasesResult.error) {
+            setTimeout(() => {
+                setLoadingMoreCases(false);
+                dispatch(AppActions.showMessage({
+                    message: T.translate("shark_attack.more_cases_error"),
+                    variant: 'error'
+                }));
+            }, 1000);
+        }
+    }, [getMoreCasesResult.data, getMoreCasesResult.error])
+
     /*
     *  ====== FORM HANDLERS, VALIDATORS AND LOGIC ========
     */
@@ -211,6 +237,17 @@ function SharkAttack(props) {
             createSharkAttack({ variables: { input: { ...processedForm, organizationId: loggedUser.selectedOrganization.id } } });
         } else {
             updateSharkAttack({ variables: { id, input: { ...processedForm, id: undefined, __typename: undefined, metadata: undefined }, merge: true } });
+        }
+    }
+
+    /**
+     * Handle the Get More Cases button action
+     */
+    function handleGetMoreCases() {
+        if (form && form.country) {
+            setLoadingMoreCases(true);
+            setMoreCases([]);
+            getMoreCases({ variables: { country: form.country } });
         }
     }
 
@@ -341,7 +378,7 @@ function SharkAttack(props) {
 
                                 return (
                                     <form noValidate onSubmit={handleSubmit}>
-                                        {tabValue === 0 && <BasicInfo dataSource={values} {...{ T, onChange, canWrite, errors, touched }} />}
+                                        {tabValue === 0 && <BasicInfo dataSource={values} {...{ T, onChange, canWrite, errors, touched, handleGetMoreCases, loadingMoreCases, moreCases }} />}
                                         {tabValue === 1 && <Metadata dataSource={values} T={T} />}
                                     </form>
                                 );

@@ -76,6 +76,9 @@ module.exports = {
         },
         FactsMngSharkAttack(root, args, context) {
             return sendToBackEndHandler$(root, args, context, READ_ROLES, 'query', 'SharkAttack', 'FactsMngSharkAttack').toPromise();
+        },
+        moreSharkAttacksByCountry(root, args, context) {
+            return sendToBackEndHandler$(root, args, context, READ_ROLES, 'query', 'SharkAttack', 'moreSharkAttacksByCountry').toPromise();
         }
     },
 

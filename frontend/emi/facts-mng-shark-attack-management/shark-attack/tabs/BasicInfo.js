@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TextField, FormControlLabel, Switch, Grid, Typography, Divider, Select, MenuItem, FormControl, InputLabel } from '@material-ui/core';
+import { TextField, FormControlLabel, Switch, Grid, Typography, Divider, Select, MenuItem, FormControl, InputLabel, Button } from '@material-ui/core';
 import * as Yup from "yup";
 
 export function basicInfoFormValidationsGenerator(T) {
@@ -33,7 +33,7 @@ export function basicInfoFormValidationsGenerator(T) {
  * @param {{dataSource,T}} props 
  */
 export function BasicInfo(props) {
-    const { dataSource: form, T, onChange, errors, touched, canWrite } = props;
+    const { dataSource: form, T, onChange, errors, touched, canWrite, handleGetMoreCases, loadingMoreCases, moreCases } = props;
     return (
         <div>
             {/* Basic Info Section */}
@@ -125,6 +125,41 @@ export function BasicInfo(props) {
                         helperText={(errors.country && touched.country) ? errors.country : `${(form.country || '').length}/100`}
                         error={errors.country && touched.country}
                     />
+                    {form.country && (
+                        <div className="mb-16">
+                            <Button
+                                variant="outlined"
+                                color="primary"
+                                size="small"
+                                disabled={loadingMoreCases}
+                                onClick={handleGetMoreCases}
+                                className="mb-8"
+                            >
+                                {loadingMoreCases ? 'Consultando...' : `Consultar más casos en ${form.country}`}
+                            </Button>
+                            
+                            {loadingMoreCases && (
+                                <div className="w-full bg-gray-200 rounded-full h-2 mb-8">
+                                    <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '100%'}}></div>
+                                </div>
+                            )}
+                            
+                            {moreCases && moreCases.length > 0 && (
+                                <div>
+                                    <Typography variant="subtitle2" className="mb-4">Casos adicionales:</Typography>
+                                    <ul className="list-disc pl-16 text-sm">
+                                        {moreCases.map((case_, index) => (
+                                            <li key={index} className="mb-2">
+                                                <Typography variant="caption">
+                                                    {case_.date} - {case_.location} - {case_.activity}
+                                                </Typography>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </Grid>
                 <Grid item xs={12} sm={6}>
                     <TextField

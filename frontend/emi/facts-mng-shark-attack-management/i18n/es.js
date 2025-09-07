@@ -68,6 +68,7 @@ export default {
     internal_server_error: 'Error Interno del Servidor',
     update_success: 'Ataque de Tiburón ha sido actualizado',
     create_success: 'Ataque de Tiburón ha sido creado',
+    more_cases_error: 'Error al consultar más casos',
     form_validations: {
       name: {
         length: "El nombre debe tener al menos {len} caracteres",

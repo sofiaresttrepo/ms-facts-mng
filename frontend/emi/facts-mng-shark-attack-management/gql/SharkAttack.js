@@ -67,6 +67,17 @@ export const FactsMngUpdateSharkAttack = (variables) => ({
     variables
 })
 
+export const moreSharkAttacksByCountry = (variables) => ({
+    query: gql`
+            query moreSharkAttacksByCountry($country: String!){
+                moreSharkAttacksByCountry(country: $country){
+                    country, date, activity, location
+                }
+            }`,
+    variables,
+    fetchPolicy: 'network-only',
+})
+
 export const onFactsMngSharkAttackModified = (variables) => ([
     gql`subscription onFactsMngSharkAttackModified($id:ID!){
             FactsMngSharkAttackModified(id:$id){    
