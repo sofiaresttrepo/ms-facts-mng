@@ -19,8 +19,12 @@ export const MicroFrontendConfig = {
             component: React.lazy(() => import('./shark-attacks/SharkAttacks'))
         },
         {
+            path: '/shark-attack-mng/dashboard',
+            component: React.lazy(() => import('./dashboard/Dashboard'))
+        },
+        {
             path: '/shark-attack-mng',
-            component: () => <Redirect to="/shark-attack-mng/shark-attacks" />
+            component: () => <Redirect to="/shark-attack-mng/dashboard" />
         }
     ],
     navigationConfig: [
@@ -31,11 +35,28 @@ export const MicroFrontendConfig = {
             'priority': 100,
             children: [{
                 'id': 'facts-mng-shark-attack-management',
-                'type': 'item',
+                'type': 'collapse',
                 'icon': 'business',
-                'url': '/shark-attack-mng',
                 'priority': 2000,
-                auth
+                auth,
+                children: [
+                    {
+                        'id': 'shark-attack-dashboard',
+                        'type': 'item',
+                        'icon': 'dashboard',
+                        'url': '/shark-attack-mng/dashboard',
+                        'priority': 1000,
+                        auth
+                    },
+                    {
+                        'id': 'shark-attack-list',
+                        'type': 'item',
+                        'icon': 'list',
+                        'url': '/shark-attack-mng/shark-attacks',
+                        'priority': 2000,
+                        auth
+                    }
+                ]
             }]
         }
     ],

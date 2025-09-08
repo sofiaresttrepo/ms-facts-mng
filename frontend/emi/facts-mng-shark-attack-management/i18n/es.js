@@ -2,6 +2,8 @@ export default {
   navigation: {
     'settings': 'Configuraciones',
     'facts-mng-shark-attack-management': 'SharkAttacks',
+    'shark-attack-dashboard': 'Dashboard',
+    'shark-attack-list': 'Lista de Ataques',
   },
   shark_attacks: {
     shark_attacks: 'SharkAttacks',
