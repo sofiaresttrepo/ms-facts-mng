@@ -67,11 +67,11 @@ export const FactsMngUpdateSharkAttack = (variables) => ({
     variables
 })
 
-export const moreSharkAttacksByCountry = (variables) => ({
+export const FactsMngSharkAttacksByCountry = (variables) => ({
     query: gql`
-            query moreSharkAttacksByCountry($country: String!){
-                moreSharkAttacksByCountry(country: $country){
-                    country, date, activity, location
+            query FactsMngSharkAttacksByCountry($country: String!, $organizationId: String!){
+                FactsMngSharkAttacksByCountry(country: $country, organizationId: $organizationId){
+                    id, name, country, age, type
                 }
             }`,
     variables,

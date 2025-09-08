@@ -2,22 +2,38 @@
 
 const uuidv4 = require("uuid/v4");
 const { of, forkJoin, from, iif, throwError } = require("rxjs");
-const { mergeMap, catchError, map, toArray, pluck } = require('rxjs/operators');
+const {
+  mergeMap,
+  catchError,
+  map,
+  toArray,
+  tap,
+  last,
+  delay,
+  take,
+} = require("rxjs/operators");
 
 const Event = require("@nebulae/event-store").Event;
-const { CqrsResponseHelper } = require('@nebulae/backend-node-tools').cqrs;
-const { ConsoleLogger } = require('@nebulae/backend-node-tools').log;
-const { CustomError, INTERNAL_SERVER_ERROR_CODE, PERMISSION_DENIED } = require("@nebulae/backend-node-tools").error;
+const { CqrsResponseHelper } = require("@nebulae/backend-node-tools").cqrs;
+const { ConsoleLogger } = require("@nebulae/backend-node-tools").log;
+const { CustomError, INTERNAL_SERVER_ERROR_CODE, PERMISSION_DENIED } =
+  require("@nebulae/backend-node-tools").error;
 const { brokerFactory } = require("@nebulae/backend-node-tools").broker;
 
 const broker = brokerFactory();
 const eventSourcing = require("../../tools/event-sourcing").eventSourcing;
+const { FeedParser } = require("../../tools/feed-parser");
+
 const SharkAttackDA = require("./data-access/SharkAttackDA");
 
 const READ_ROLES = ["SHARK_ATTACK_READ"];
 const WRITE_ROLES = ["SHARK_ATTACK_WRITE"];
 const REQUIRED_ATTRIBUTES = [];
 const MATERIALIZED_VIEW_TOPIC = "emi-gateway-materialized-view-updates";
+
+const SHARK_ATTACKS_FEED_URL =
+  process.env.GAME_FEED_URL ||
+  "https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/global-shark-attack/records?limit=100";
 
 /**
  * Singleton instance
@@ -40,13 +56,58 @@ class SharkAttackCRUD {
   generateRequestProcessorMap() {
     return {
       'SharkAttack': {
-        "emigateway.graphql.query.FactsMngSharkAttackListing": { fn: instance.getFactsMngSharkAttackListing$, instance, jwtValidation: { roles: READ_ROLES, attributes: REQUIRED_ATTRIBUTES } },
-        "emigateway.graphql.query.FactsMngSharkAttack": { fn: instance.getSharkAttack$, instance, jwtValidation: { roles: READ_ROLES, attributes: REQUIRED_ATTRIBUTES } },
-        "emigateway.graphql.query.moreSharkAttacksByCountry": { fn: instance.getMoreSharkAttacksByCountry$, instance, jwtValidation: { roles: READ_ROLES, attributes: REQUIRED_ATTRIBUTES } },
-        "emigateway.graphql.mutation.FactsMngCreateSharkAttack": { fn: instance.createSharkAttack$, instance, jwtValidation: { roles: WRITE_ROLES, attributes: REQUIRED_ATTRIBUTES } },
-        "emigateway.graphql.mutation.FactsMngUpdateSharkAttack": { fn: instance.updateSharkAttack$, instance, jwtValidation: { roles: WRITE_ROLES, attributes: REQUIRED_ATTRIBUTES } },
-        "emigateway.graphql.mutation.FactsMngDeleteSharkAttacks": { fn: instance.deleteSharkAttacks$, instance, jwtValidation: { roles: WRITE_ROLES, attributes: REQUIRED_ATTRIBUTES } },
-        "emigateway.graphql.mutation.importSharkAttacks": { fn: instance.importSharkAttacks$, instance, jwtValidation: { roles: WRITE_ROLES, attributes: REQUIRED_ATTRIBUTES } },
+        "emigateway.graphql.query.FactsMngSharkAttackListing": {
+          fn: instance.getFactsMngSharkAttackListing$,
+          instance,
+          jwtValidation: { roles: READ_ROLES, attributes: REQUIRED_ATTRIBUTES },
+        },
+        "emigateway.graphql.query.FactsMngSharkAttack": {
+          fn: instance.getSharkAttack$,
+          instance,
+          jwtValidation: { roles: READ_ROLES, attributes: REQUIRED_ATTRIBUTES },
+        },
+        "emigateway.graphql.query.FactsMngSharkAttacksByCountry": {
+          fn: instance.getFactsMngSharkAttacksByCountry$,
+          instance,
+          jwtValidation: { roles: READ_ROLES, attributes: REQUIRED_ATTRIBUTES },
+        },
+        "emigateway.graphql.query.FactsMngSharkAttacksAggStats": {
+          fn: instance.getFactsMngSharkAttacksAggStats$,
+          instance,
+          jwtValidation: { roles: READ_ROLES, attributes: REQUIRED_ATTRIBUTES },
+        },
+        "emigateway.graphql.mutation.FactsMngImportSharkAttacks": {
+          fn: instance.importSharkAttacks$,
+          instance,
+          jwtValidation: {
+            roles: WRITE_ROLES,
+            attributes: REQUIRED_ATTRIBUTES,
+          },
+        },
+        "emigateway.graphql.mutation.FactsMngCreateSharkAttack": {
+          fn: instance.createSharkAttack$,
+          instance,
+          jwtValidation: {
+            roles: WRITE_ROLES,
+            attributes: REQUIRED_ATTRIBUTES,
+          },
+        },
+        "emigateway.graphql.mutation.FactsMngUpdateSharkAttack": {
+          fn: instance.updateSharkAttack$,
+          instance,
+          jwtValidation: {
+            roles: WRITE_ROLES,
+            attributes: REQUIRED_ATTRIBUTES,
+          },
+        },
+        "emigateway.graphql.mutation.FactsMngDeleteSharkAttacks": {
+          fn: instance.deleteSharkAttacks$,
+          instance,
+          jwtValidation: {
+            roles: WRITE_ROLES,
+            attributes: REQUIRED_ATTRIBUTES,
+          },
+        },
       }
     }
   };
@@ -87,43 +148,55 @@ class SharkAttackCRUD {
 
   }
 
-  /**  
-   * Gets more shark attack cases by country from OpenDataSoft API
+  /**
+   * Obtiene los agregados agrupados por pais y año
+   */
+  getFactsMngSharkAttacksAggStats$({ args }) {
+    const { recordLimit } = args;
+
+    return SharkAttackDA.getFactsMngSharkAttacksAggStats$(recordLimit).pipe(
+      mergeMap((rawResponse) =>
+        CqrsResponseHelper.buildSuccessResponse$(rawResponse)
+      ),
+      catchError((err) =>
+        iif(
+          () => err.name === "MongoTimeoutError",
+          throwError(err),
+          CqrsResponseHelper.handleError$(err)
+        )
+      )
+    );
+  }
+
+  /**
+   * Get shark attacks by country from external API
    *
    * @param {*} args args
    */
-  getMoreSharkAttacksByCountry$({ args }, authToken) {
-    const { country } = args;
-    const https = require('https');
-    const apiUrl = `https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/global-shark-attack/records?where=country%3D%27${encodeURIComponent(country)}%27&limit=5`;
+  getFactsMngSharkAttacksByCountry$({ args }, authToken) {
+    const { country, organizationId } = args;
+    console.log('DEBUG - getFactsMngSharkAttacksByCountry$ args:', { country, organizationId });
     
-    return from(new Promise((resolve, reject) => {
-      const req = https.get(apiUrl, (res) => {
-        let data = '';
-        res.on('data', (chunk) => data += chunk);
-        res.on('end', () => {
-          try {
-            const response = JSON.parse(data);
-            const cases = (response.results || []).map(record => ({
-              country: record.country || '',
-              date: record.date || '',
-              activity: record.activity || '',
-              location: record.location || ''
-            }));
-            resolve(cases);
-          } catch (error) {
-            reject(error);
-          }
-        });
-      });
-      req.on('error', reject);
-      req.setTimeout(5000, () => {
-        req.destroy();
-        reject(new Error('Request timeout'));
-      });
-    })).pipe(
-      mergeMap(rawResponse => CqrsResponseHelper.buildSuccessResponse$(rawResponse)),
-      catchError(err => CqrsResponseHelper.handleError$(err))
+    return FeedParser.getSharkAttackDetailByCountry$(country).pipe(
+      map((record) => {
+        console.log('DEBUG - Processing record:', record);
+        return {
+          id: record.original_order || record.case_number || 'unknown',
+          name: record.name || 'Unknown',
+          country: record.country || country,
+          age: record.age || 'Unknown',
+          type: record.type || 'Unknown'
+        };
+      }),
+      toArray(),
+      tap((results) => console.log('DEBUG - Final results:', results)),
+      mergeMap((rawResponse) =>
+        CqrsResponseHelper.buildSuccessResponse$(rawResponse)
+      ),
+      catchError((err) => {
+        console.error('ERROR in getFactsMngSharkAttacksByCountry$:', err);
+        return CqrsResponseHelper.handleError$(err);
+      })
     );
   }
 
@@ -191,121 +264,88 @@ class SharkAttackCRUD {
 
 
   /**
-   * Import 100 shark attacks from OpenDataSoft API
+   * Import shark attacks list
    */
-  importSharkAttacks$({ args }, authToken) {
-    console.log('DEBUG - authToken:', JSON.stringify(authToken, null, 2));
-    const https = require('https');
-    const apiUrl = 'https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/global-shark-attack/records?limit=100';
-    
-    return from(new Promise((resolve, reject) => {
-      const req = https.get(apiUrl, (res) => {
-        let data = '';
-        res.on('data', (chunk) => data += chunk);
-        res.on('end', () => {
-          try {
-            const response = JSON.parse(data);
-            resolve(response.results || []);
-          } catch (error) {
-            reject(error);
-          }
-        });
-      });
-      req.on('error', reject);
-      req.setTimeout(30000, () => {
-        req.destroy();
-        reject(new Error('Request timeout'));
-      });
-    })).pipe(
-      mergeMap(records => {
-        const importPromises = records.map(record => {
-          const aggregateId = record.original_order || uuidv4();
-          const sharkAttackData = {
-            organizationId: authToken.selectedOrganization || authToken.organizationId || 'default',
-            date: record.date || '',
-            year: record.year ? parseInt(record.year) : null,
-            type: record.type || '',
-            country: record.country || '',
-            area: record.area || '',
-            location: record.location || '',
-            activity: record.activity || '',
-            name: record.name || '',
-            sex: record.sex || '',
-            age: record.age || '',
-            injury: record.injury || '',
-            fatal_y_n: record.fatal_y_n || '',
-            time: record.time || '',
-            species: record.species || '',
-            investigator_or_source: record.investigator_or_source || '',
-            pdf: record.pdf || '',
-            href_formula: record.href_formula || '',
-            href: record.href || '',
-            case_number: record.case_number || '',
-            case_number0: record.case_number0 || '',
-            active: true
-          };
-          
-          return SharkAttackDA.upsertSharkAttack$(aggregateId, sharkAttackData, authToken.preferred_username).pipe(
-            mergeMap(aggregate => forkJoin(
-              of(aggregate),
-              eventSourcing.emitEvent$(instance.buildSharkAttackReportedEvent(aggregateId, authToken, aggregate), { autoAcknowledgeKey: process.env.MICROBACKEND_KEY })
-            )),
-            map(([aggregate]) => aggregate),
-            catchError(err => {
-              console.error(`Error importing record ${aggregateId}:`, err);
-              return of(null);
-            })
-          );
-        });
-        
-        return forkJoin(importPromises).pipe(
-          map(results => results.filter(r => r !== null)),
-          map(importedRecords => ({
-            code: 200,
-            message: `Successfully imported ${importedRecords.length} out of ${records.length} shark attack records`
-          }))
-        );
-      }),
-      mergeMap(rawResponse => CqrsResponseHelper.buildSuccessResponse$(rawResponse)),
-      catchError(err => CqrsResponseHelper.handleError$(err))
+  importSharkAttacks$({ root, args, jwt }, authToken) {
+    return FeedParser.parseFeed$(SHARK_ATTACKS_FEED_URL).pipe(
+      map((data) => ({
+        ...data,
+        id: data.original_order,
+        active: true,
+        organizationId: authToken.organizationId,
+      })),
+      //take(2),
+      mergeMap((sharkAttack) =>
+        forkJoin([
+          eventSourcing.emitEvent$(
+            instance.buildAggregateMofifiedEvent(
+              "CREATE",
+              "SharkAttack",
+              sharkAttack.id,
+              authToken,
+              sharkAttack,
+              "SharkAttackReported"
+            )
+            //{ autoAcknowledgeKey: process.env.MICROBACKEND_KEY } // para que no escuhe mis propios mensajes
+          ),
+          broker.send$(
+            MATERIALIZED_VIEW_TOPIC,
+            `FactsMngSharkAttackModified`,
+            sharkAttack
+          ),
+        ])
+      ),
+      toArray(), //Espera todas las respuestas y luego lo convierte en un array
+      // Respuesta al frontend
+      map((result) => ({
+        code: result.length,
+        message: `::: ${result.length} Eventos emitidos`,
+      })),
+      mergeMap((aggregate) =>
+        forkJoin(
+          CqrsResponseHelper.buildSuccessResponse$(aggregate),
+          instance.getFactsMngSharkAttackListing$(args)
+        )
+      ),
+      map(([sucessResponse]) => sucessResponse),
+      catchError((err) =>
+        iif(
+          () => err.name === "MongoTimeoutError",
+          throwError(err),
+          CqrsResponseHelper.handleError$(err)
+        )
+      )
     );
   }
 
   /**
-   * Generate an Modified event 
+   * Generate an Modified event
    * @param {string} modType 'CREATE' | 'UPDATE' | 'DELETE'
-   * @param {*} aggregateType 
-   * @param {*} aggregateId 
-   * @param {*} authToken 
-   * @param {*} data 
+   * @param {*} aggregateType
+   * @param {*} aggregateId
+   * @param {*} authToken
+   * @param {*} data
    * @returns {Event}
    */
-  buildAggregateMofifiedEvent(modType, aggregateType, aggregateId, authToken, data) {
+  buildAggregateMofifiedEvent(
+    modType,
+    aggregateType,
+    aggregateId,
+    authToken,
+    data,
+    eventType
+  ) {
     return new Event({
-      eventType: `${aggregateType}Modified`,
+      eventType: eventType || `${aggregateType}Modified`,
       eventTypeVersion: 1,
       aggregateType: aggregateType,
       aggregateId,
       data: {
         modType,
-        ...data
+        ...data,
       },
-      user: authToken.preferred_username
-    })
-  }
-
-  /**
-   * Generate a SharkAttackReported event for imported records
-   */
-  buildSharkAttackReportedEvent(aggregateId, authToken, data) {
-    return new Event({
-      eventType: "SharkAttackReported",
-      eventTypeVersion: 1,
-      aggregateType: "SharkAttack",
-      aggregateId,
-      data,
-      user: authToken.preferred_username
-    })
+      user: authToken.preferred_username,
+    });
   }
 }
 

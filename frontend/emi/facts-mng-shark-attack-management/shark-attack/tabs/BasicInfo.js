@@ -6,7 +6,11 @@ import * as Yup from "yup";
 export function basicInfoFormValidationsGenerator(T) {
     return {
         date: Yup.string().matches(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)'),
-        year: Yup.number().integer('Debe ser un número entero').min(1500, 'Año mínimo 1500').max(new Date().getFullYear(), 'Año no puede ser futuro'),
+        year: Yup.string().matches(/^\d{4}$/, 'Debe ser un año válido (4 dígitos)').test('valid-year', 'Año debe estar entre 1500 y el año actual', function(value) {
+            if (!value) return true; // opcional
+            const year = parseInt(value);
+            return year >= 1500 && year <= new Date().getFullYear();
+        }),
         type: Yup.string().oneOf(['Provoked', 'Unprovoked', 'Boat', 'Sea Disaster', 'Questionable'], 'Tipo de ataque inválido'),
         country: Yup.string().max(100, 'Máximo 100 caracteres'),
         area: Yup.string().max(200, 'Máximo 200 caracteres'),
@@ -79,13 +83,14 @@ export function BasicInfo(props) {
                         label={T.translate("shark_attack.year")}
                         id="year"
                         name="year"
-                        type="number"
+                        type="text"
                         value={form.year || ''}
                         onChange={onChange("year")}
                         variant="outlined"
                         fullWidth
-                        InputProps={{ readOnly: !canWrite(), inputProps: { min: 1500, max: new Date().getFullYear() } }}
-                        helperText={(errors.year && touched.year) && errors.year}
+                        inputProps={{ maxLength: 4, pattern: "[0-9]*" }}
+                        InputProps={{ readOnly: !canWrite() }}
+                        helperText={(errors.year && touched.year) ? errors.year : "Ej: 2023"}
                         error={errors.year && touched.year}
                     />
                 </Grid>
@@ -117,12 +122,15 @@ export function BasicInfo(props) {
                         id="country"
                         name="country"
                         value={form.country || ''}
-                        onChange={onChange("country")}
+                        onChange={(e) => {
+                            e.target.value = e.target.value.toUpperCase();
+                            onChange("country")(e);
+                        }}
                         variant="outlined"
                         fullWidth
-                        inputProps={{ maxLength: 100 }}
+                        inputProps={{ maxLength: 100, style: { textTransform: 'uppercase' } }}
                         InputProps={{ readOnly: !canWrite() }}
-                        helperText={(errors.country && touched.country) ? errors.country : `${(form.country || '').length}/100`}
+                        helperText={(errors.country && touched.country) ? errors.country : `${(form.country || '').length}/100 - Se convertirá automáticamente a mayúsculas`}
                         error={errors.country && touched.country}
                     />
                     {form.country && (
@@ -144,14 +152,14 @@ export function BasicInfo(props) {
                                 </div>
                             )}
                             
-                            {moreCases && moreCases.length > 0 && (
+                            {!loadingMoreCases && moreCases && moreCases.length > 0 && (
                                 <div>
-                                    <Typography variant="subtitle2" className="mb-4">Casos adicionales:</Typography>
+                                    <Typography variant="subtitle2" className="mb-4">Casos adicionales encontrados:</Typography>
                                     <ul className="list-disc pl-16 text-sm">
                                         {moreCases.map((case_, index) => (
                                             <li key={index} className="mb-2">
                                                 <Typography variant="caption">
-                                                    {case_.date} - {case_.location} - {case_.activity}
+                                                    {case_.name || 'Sin nombre'} - {case_.country} - {case_.age || 'Edad desconocida'} - {case_.type || 'Tipo desconocido'}
                                                 </Typography>
                                             </li>
                                         ))}

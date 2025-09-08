@@ -28,7 +28,7 @@ import {
     FactsMngSharkAttack,
     FactsMngCreateSharkAttack,
     FactsMngUpdateSharkAttack,
-    moreSharkAttacksByCountry
+    FactsMngSharkAttacksByCountry
 } from "../gql/SharkAttack";
 import { delay } from 'rxjs/operators';
 import Metadata from './tabs/Metadata';
@@ -41,7 +41,7 @@ import { BasicInfo, basicInfoFormValidationsGenerator } from './tabs/BasicInfo';
 const defaultData = {
     active: true,
     date: '',
-    year: null,
+    year: '',
     type: '',
     country: '',
     area: '',
@@ -78,8 +78,8 @@ function SharkAttack(props) {
     const onSharkAttackModifiedResult = useSubscription(...onFactsMngSharkAttackModified({ id: props.match.params.sharkAttackId }));
     
     // More cases functionality
-    const [getMoreCases, getMoreCasesResult] = useLazyQuery(moreSharkAttacksByCountry({}).query, { fetchPolicy: 'network-only' });
-    const [moreCases, setMoreCases] = useState([]);
+    const [getMoreCases, getMoreCasesResult] = useLazyQuery(FactsMngSharkAttacksByCountry({}).query, { fetchPolicy: 'network-only' });
+    const [moreCases, setMoreCases] = useState(null);
     const [loadingMoreCases, setLoadingMoreCases] = useState(false);
 
     //UI controls states
@@ -176,7 +176,7 @@ function SharkAttack(props) {
     useEffect(() => {
         if (getMoreCasesResult.data) {
             setTimeout(() => {
-                setMoreCases(getMoreCasesResult.data.moreSharkAttacksByCountry || []);
+                setMoreCases(getMoreCasesResult.data.FactsMngSharkAttacksByCountry || []);
                 setLoadingMoreCases(false);
             }, 1000); // 1 second delay
         }
@@ -232,14 +232,10 @@ function SharkAttack(props) {
      */
     function handleSave() {
         const { id } = form;
-        const processedForm = {
-            ...form,
-            year: form.year ? parseInt(form.year) : null
-        };
         if (id === undefined) {
-            createSharkAttack({ variables: { input: { ...processedForm, organizationId: loggedUser.selectedOrganization.id } } });
+            createSharkAttack({ variables: { input: { ...form, organizationId: loggedUser.selectedOrganization.id } } });
         } else {
-            updateSharkAttack({ variables: { id, input: { ...processedForm, id: undefined, __typename: undefined, metadata: undefined }, merge: true } });
+            updateSharkAttack({ variables: { id, input: { ...form, id: undefined, __typename: undefined, metadata: undefined }, merge: true } });
         }
     }
 
@@ -247,10 +243,15 @@ function SharkAttack(props) {
      * Handle the Get More Cases button action
      */
     function handleGetMoreCases() {
-        if (form && form.country) {
+        if (form && form.country && loggedUser.selectedOrganization) {
             setLoadingMoreCases(true);
-            setMoreCases([]);
-            getMoreCases({ variables: { country: form.country } });
+            setMoreCases(null);
+            getMoreCases({ 
+                variables: { 
+                    country: form.country, 
+                    organizationId: loggedUser.selectedOrganization.id 
+                } 
+            });
         }
     }
 

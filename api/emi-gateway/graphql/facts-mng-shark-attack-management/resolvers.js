@@ -77,13 +77,11 @@ module.exports = {
         FactsMngSharkAttack(root, args, context) {
             return sendToBackEndHandler$(root, args, context, READ_ROLES, 'query', 'SharkAttack', 'FactsMngSharkAttack').toPromise();
         },
-        moreSharkAttacksByCountry(root, args, context) {
-            // Transform country to uppercase to ensure API compatibility
-            const modifiedArgs = {
-                ...args,
-                country: args.country.toUpperCase()
-            };
-            return sendToBackEndHandler$(root, modifiedArgs, context, READ_ROLES, 'query', 'SharkAttack', 'moreSharkAttacksByCountry').toPromise();
+        FactsMngSharkAttacksByCountry(root, args, context) {
+            return sendToBackEndHandler$(root, args, context, READ_ROLES, 'query', 'SharkAttack', 'FactsMngSharkAttacksByCountry').toPromise();
+        },
+        FactsMngSharkAttacksAggStats(root, args, context) {
+            return sendToBackEndHandler$(root, args, context, READ_ROLES, 'query', 'SharkAttack', 'FactsMngSharkAttacksAggStats').toPromise();
         }
     },
 
@@ -98,8 +96,8 @@ module.exports = {
         FactsMngDeleteSharkAttacks(root, args, context) {
             return sendToBackEndHandler$(root, args, context, WRITE_ROLES, 'mutation', 'SharkAttack', 'FactsMngDeleteSharkAttacks').toPromise();
         },
-        importSharkAttacks(root, args, context) {
-            return sendToBackEndHandler$(root, args, context, WRITE_ROLES, 'mutation', 'SharkAttack', 'importSharkAttacks', 60000).toPromise();
+        FactsMngImportSharkAttacks(root, args, context) {
+            return sendToBackEndHandler$(root, args, context, WRITE_ROLES, 'mutation', 'SharkAttack', 'FactsMngImportSharkAttacks', 60000).toPromise();
         }
     },
 
@@ -154,9 +152,21 @@ eventDescriptors.forEach(descriptor => {
                 descriptor.onEvent(evt, descriptor);
             }
             const payload = {};
-            payload[descriptor.gqlSubscriptionName] = descriptor.dataExtractor
+            let data = descriptor.dataExtractor
                 ? descriptor.dataExtractor(evt)
                 : evt.data;
+            // Ensure ID field is present
+            if (data) {
+                if (!data.id && data._id) {
+                    data.id = data._id;
+                } else if (!data.id && evt.aid) {
+                    data.id = evt.aid;
+                } else if (!data.id) {
+                    console.log('WARNING: Subscription data missing ID field:', data);
+                    return; // Skip this event if no ID
+                }
+            }
+            payload[descriptor.gqlSubscriptionName] = data;
             pubsub.publish(descriptor.gqlSubscriptionName, payload);
         },
 
