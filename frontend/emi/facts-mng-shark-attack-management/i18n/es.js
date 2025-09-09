@@ -80,6 +80,13 @@ export default {
     update_success: 'Ataque de Tiburón ha sido actualizado',
     create_success: 'Ataque de Tiburón ha sido creado',
     more_cases_error: 'Error al consultar más casos',
+    dashboard: {
+      title: 'Dashboard de Ataques de Tiburones',
+      total_attacks: 'Total de Ataques',
+      attacks_registered: 'Ataques registrados',
+      top_countries: 'Top 5 Países con Más Ataques',
+      attacks_by_year: 'Ataques por Año'
+    },
     form_validations: {
       name: {
         length: "El nombre debe tener al menos {len} caracteres",

@@ -169,34 +169,31 @@ class SharkAttackCRUD {
   }
 
   /**
-   * Get shark attacks by country from external API
+   * Get importing of shark attacks
    *
    * @param {*} args args
    */
   getFactsMngSharkAttacksByCountry$({ args }, authToken) {
-    const { country, organizationId } = args;
-    console.log('DEBUG - getFactsMngSharkAttacksByCountry$ args:', { country, organizationId });
-    
+    const { country } = args;
     return FeedParser.getSharkAttackDetailByCountry$(country).pipe(
-      map((record) => {
-        console.log('DEBUG - Processing record:', record);
-        return {
-          id: record.original_order || record.case_number || 'unknown',
-          name: record.name || 'Unknown',
-          country: record.country || country,
-          age: record.age || 'Unknown',
-          type: record.type || 'Unknown'
-        };
-      }),
+      map(({ original_order: id, name, country, age, type }) => ({
+        id,
+        name,
+        country,
+        age,
+        type,
+      })),
       toArray(),
-      tap((results) => console.log('DEBUG - Final results:', results)),
       mergeMap((rawResponse) =>
         CqrsResponseHelper.buildSuccessResponse$(rawResponse)
       ),
-      catchError((err) => {
-        console.error('ERROR in getFactsMngSharkAttacksByCountry$:', err);
-        return CqrsResponseHelper.handleError$(err);
-      })
+      catchError((err) =>
+        iif(
+          () => err.name === "MongoTimeoutError",
+          throwError(err),
+          CqrsResponseHelper.handleError$(err)
+        )
+      )
     );
   }
 
@@ -267,13 +264,15 @@ class SharkAttackCRUD {
    * Import shark attacks list
    */
   importSharkAttacks$({ root, args, jwt }, authToken) {
+    console.log('DEBUG - Import authToken:', JSON.stringify(authToken, null, 2));
     return FeedParser.parseFeed$(SHARK_ATTACKS_FEED_URL).pipe(
       map((data) => ({
         ...data,
         id: data.original_order,
         active: true,
-        organizationId: authToken.organizationId,
+        organizationId: "2b203510-4475-42d5-96a2-1b9d44020cf0",
       })),
+      tap(data => console.log('DEBUG - Importing shark attack with organizationId:', data.organizationId)),
       //take(2),
       mergeMap((sharkAttack) =>
         forkJoin([
@@ -302,12 +301,8 @@ class SharkAttackCRUD {
         message: `::: ${result.length} Eventos emitidos`,
       })),
       mergeMap((aggregate) =>
-        forkJoin(
-          CqrsResponseHelper.buildSuccessResponse$(aggregate),
-          instance.getFactsMngSharkAttackListing$(args)
-        )
+        CqrsResponseHelper.buildSuccessResponse$(aggregate)
       ),
-      map(([sucessResponse]) => sucessResponse),
       catchError((err) =>
         iif(
           () => err.name === "MongoTimeoutError",

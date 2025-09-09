@@ -71,7 +71,26 @@ export const FactsMngSharkAttacksByCountry = (variables) => ({
     query: gql`
             query FactsMngSharkAttacksByCountry($country: String!, $organizationId: String!){
                 FactsMngSharkAttacksByCountry(country: $country, organizationId: $organizationId){
-                    id, name, country, age, type
+                    country, name, age, type
+                }
+            }`,
+    variables,
+    fetchPolicy: 'network-only',
+})
+
+export const FactsMngSharkAttacksAggStats = (variables) => ({
+    query: gql`
+            query FactsMngSharkAttacksAggStats($recordLimit: Int!){
+                FactsMngSharkAttacksAggStats(recordLimit: $recordLimit){
+                    countries {
+                        country
+                        total
+                    }
+                    years {
+                        year
+                        total
+                    }
+                    totalSharkAttacks
                 }
             }`,
     variables,
@@ -81,24 +100,11 @@ export const FactsMngSharkAttacksByCountry = (variables) => ({
 export const importSharkAttacks = () => ({
     mutation: gql`
             mutation importSharkAttacks{
-                importSharkAttacks{
+                FactsMngImportSharkAttacks(input: { limit: 1000 }){
                     code, message
                 }
             }`,
     variables: {}
-})
-
-export const FactsMngSharkAttacksAggStats = (variables) => ({
-    query: gql`
-            query FactsMngSharkAttacksAggStats($recordLimit: Int!){
-                FactsMngSharkAttacksAggStats(recordLimit: $recordLimit){
-                    countries{ country, total },
-                    years{ year, total },
-                    totalSharkAttacks
-                }
-            }`,
-    variables,
-    fetchPolicy: 'network-only',
 })
 
 export const onFactsMngSharkAttackModified = (variables) => ([

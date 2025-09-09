@@ -1,11 +1,10 @@
 "use strict";
 
-let mongoDB = undefined;
-const { map, mapTo, catchError } = require("rxjs/operators");
-const { of, Observable, defer, forkJoin } = require("rxjs");
-
+const { Observable, defer, forkJoin, of } = require('rxjs');
+const { map, catchError, mapTo } = require('rxjs/operators');
 const { CustomError } = require("@nebulae/backend-node-tools").error;
 
+let mongoDB;
 const CollectionName = 'SharkAttack';
 
 class SharkAttackDA {
@@ -188,30 +187,7 @@ class SharkAttackDA {
     );
   }
 
-  /**
-   *  Crea o actualiza un registro existente
-   */
-  static createIfNotExists$(_id, properties, av) {
-    const collection = mongoDB.db.collection(CollectionName);
-    return defer(() =>
-      collection.updateOne(
-        {
-          _id,
-        },
-        { $setOnInsert: { ...properties } },
-        {
-          returnOriginal: false,
-          upsert: true,
-        }
-      )
-    ).pipe(
-      map((result) =>
-        result && result.value
-          ? { ...result.value, id: result.value._id }
-          : undefined
-      )
-    );
-  }
+
 
   /**
   * modifies the SharkAttack properties

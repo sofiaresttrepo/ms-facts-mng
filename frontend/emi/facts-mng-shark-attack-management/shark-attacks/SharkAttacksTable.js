@@ -21,7 +21,8 @@ function SharkAttacksTable(props) {
     const onFactsMngSharkAttackModifiedData = useSubscription(...onFactsMngSharkAttackModified({ id: "ANY" }));
 
     useEffect(() => {
-        dispatch(Actions.setSharkAttacksFilterOrganizationId(user.selectedOrganization.id));
+        // Temporarily using the organizationId that matches the imported data
+        dispatch(Actions.setSharkAttacksFilterOrganizationId("2b203510-4475-42d5-96a2-1b9d44020cf0"));
     }, [user.selectedOrganization]);
     useEffect(() => {
         if (filters.organizationId){

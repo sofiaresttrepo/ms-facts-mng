@@ -137,10 +137,16 @@ export function setSharkAttacksFilterOrganizationId(organizationId) {
  */
 export function importSharkAttacksData({ filters, order, page, rowsPerPage }) {
     const listingArgs = getListingQueryArguments({ filters, order, page, rowsPerPage });
+    console.log('DEBUG - Import with filters:', filters);
+    console.log('DEBUG - Import listingArgs:', listingArgs);
     return (dispatch) => defer(() => graphqlService.client.mutate(importSharkAttacks()))
         .pipe(
-            mergeMap(() => defer(() => graphqlService.client.query(FactsMngSharkAttackListing(listingArgs)))),
+            mergeMap(() => {
+                console.log('DEBUG - Import completed, refreshing list...');
+                return defer(() => graphqlService.client.query(FactsMngSharkAttackListing(listingArgs)));
+            }),
             map((result) => {
+                console.log('DEBUG - Listing result:', result.data.FactsMngSharkAttackListing);
                 dispatch({
                     type: SET_SHARK_ATTACKS,
                     payload: result.data.FactsMngSharkAttackListing
