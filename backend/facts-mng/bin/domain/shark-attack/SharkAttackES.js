@@ -16,12 +16,15 @@ try {
   );
   credentials = JSON.parse(credentialsJson);
 } catch (err) {
-  console.error("❌ Error al cargar credenciales de Google:", err.message);
+  console.error(" Error al cargar credenciales de Google:", err.message);
   process.exit(1);
 }
 
 // Creates a client; cache this for further use
-const pubSubClient = new PubSub({ credentials });
+const pubSubClient = new PubSub({ 
+  credentials,
+  projectId: 'hardy-thinker-425419-r3'
+});
 /**
  * Singleton instance
  * @type { SharkAttackES }
@@ -112,7 +115,7 @@ class SharkAttackES {
 
         return forkJoin([
             obs$,
-            this.publishMessage$("neb-university-jhones", aggregateData),
+            this.publishMessage$("neb-university-sophi", aggregateData),
         ]).pipe(
             tap((res) =>
                 ConsoleLogger.i(
