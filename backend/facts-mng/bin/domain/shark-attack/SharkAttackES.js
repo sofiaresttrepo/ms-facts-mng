@@ -23,7 +23,7 @@ try {
 // Creates a client; cache this for further use
 const pubSubClient = new PubSub({ 
   credentials,
-  projectId: 'hardy-thinker-425419-r3'
+  projectId: 'nebulae-lab-472217'
 });
 /**
  * Singleton instance
@@ -115,7 +115,7 @@ class SharkAttackES {
 
         return forkJoin([
             obs$,
-            this.publishMessage$("neb-university-sophi", aggregateData),
+            this.publishMessage$("neb-university-sofia", aggregateData),
         ]).pipe(
             tap((res) =>
                 ConsoleLogger.i(
